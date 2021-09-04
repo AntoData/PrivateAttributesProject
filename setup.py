@@ -8,7 +8,7 @@ setup(
   author = 'Antonio Pérez',                   # Type in your name
   author_email = 'ingovanpe@gmail.com',      # Type in your E-Mail
   url = 'https://github.com/AntoData',   # Provide either the link to your github or to your website
-  download_url = 'https://github.com/user/reponame/archive/v_01.tar.gz',    # I explain this later on
+  download_url = 'https://github.com/AntoData/PrivateAttributesProject/archive/refs/tags/v0.2.tar.gz',    # I explain this later on
   keywords = ['Python', 'Python3', 'Encapsulation','Attributes','Private','Decorators'],   # Keywords that define your package best
   install_requires=[            # I get to this in a second
       ],
