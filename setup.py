@@ -5,11 +5,14 @@ setup(
   version = '0.5',      # Start with a small number and increase it with every change you make
   license='MIT',        # Chose a license from here: https://help.github.com/articles/licensing-a-repository
   description = 'Module to increase encapsulation in Python, not allowing the access to private members outside their classes',   # Give a short description about your library
-  long_description = 'Module to increase encapsulation in Python, not allowing the access to private members outside their classes\n'
-                     'We offer a decorator that we can use to decorate a class for this purpose. We only have to include'
-                     'the parameters we want to make private and if we want to allow for deep copies of objects of this class\n'
-                     '@private_attributes_decorator.private_attributes_dec("arg1",allow_deep_copy=True)\n'
-                     'That way we won´t be able to get or set any our already private attributes plus the attribute arg1.'
+  long_description = 'Module to increase encapsulation in Python, not allowing the access to private members outside their classes. '
+                     ''
+                     'We offer a decorator that we can use to decorate a class for this purpose. We only have to include the parameters '
+                     'we want to make private and if we want to allow for deep copies of objects of this class: '
+                     ''
+                     '@private_attributes_decorator.private_attributes_dec("arg1",allow_deep_copy=True)'
+                     ''
+                     'That way we won´t be able to get or set any our already private attributes plus the attribute arg1. '
                      'However, we will allow for deep copies of objects of that class',
   author = 'Antonio Pérez',                   # Type in your name
   author_email = 'ingovanpe@gmail.com',      # Type in your E-Mail
