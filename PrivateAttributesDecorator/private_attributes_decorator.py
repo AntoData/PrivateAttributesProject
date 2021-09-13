@@ -11,9 +11,12 @@
 import inspect
 
 
-def private_attributes_dec(*args):
+def private_attributes_dec(*args, **kwargs):
     """We pass a series a strings with the name of public attributes we want to turn private and this decorator
-    will make them and private attributes in the class not accessible or modifiable"""
+    will make them and private attributes in the class not accessible or modifiable
+    Also if we pass a keyword parameter called allow_deep_copy set to True, we will allow the use of the function
+    deepcopy from the module copy in the instances of this class. If we don't provide it or we set it to False and
+    we set a private attribute, we will raise an AttributeError when trying to use that function"""
     def private_members_decorator(class_):
         # This is the part of the decorator who gets the class we are modifying in the attribute class_
         # We create two new members in our class that are basically clones of the magic methods to get and attribute
@@ -26,17 +29,36 @@ def private_attributes_dec(*args):
             to get a private attribute or a public attribute we set as private in the decorator outside the class"""
             # We get the current frame where the attribute was called from
             f: inspect.FrameInfo = inspect.currentframe()
-            # By default, we will consider that it is not being called from the class (or a subclass). However, we will
-            # check if that is the case using the current frame (f) and checking if it also being called from a subclass
-            # and in that case we set it to True
-            from_class: bool = False
-            if 'self' in f.f_back.f_locals and issubclass(type(f.f_back.f_locals['self']), class_):
-                from_class = True
+            # By default, we will consider that it is not being called from the class (or a subclass) or in case we want
+            # to allow it (allow_deep_copy) from the module copy and function deepcopy to create a deepcopy of the
+            # object. However, we will check if that is the case using the current frame (f) and checking if it also
+            # being called from a subclass or from the module copy and function deepcopy and in that case
+            # we set it to True
+            special_case: bool = False
+            # By default, we assume we are not doing a deepcopy of an instance from this class
+            deep_copy: bool = False
+            # If we set the keyword parameter allow_deep_copy to True in the decorator, we check if we are indeed
+            # trying to create a deepcopy of an object of our decorated class
+            if "allow_deep_copy" in kwargs.keys() and kwargs["allow_deep_copy"] == True:
+                # We get the previous frames
+                previous_frames = inspect.getouterframes(f)
+                for f1 in previous_frames:
+                    # If in our of those frames the file executed is copy.py and the function is deepcopy
+                    if f1.filename.endswith("copy.py") and f1.function == "deepcopy":
+                        # We are indeed trying to create a deep copy of an object of this class. Therefore, we set
+                        # the control parameter deep_copy to True and break the loop as we don´t have to keep searching
+                        deep_copy = True
+                        break
+            # So if the attribute was called inside our class or one of its subclasses or we are trying to perform
+            # a deepcopy
+            if ('self' in f.f_back.f_locals and issubclass(type(f.f_back.f_locals['self']), class_)) or deep_copy:
+                # It is an special case we have to accept
+                special_case = True
             # If the attribute being called is private (starts with __ or _className__ or is in the list of attributes
-            # provided to the decorator and it is not being called from the class or a subclass,
-            # we raise an AttributeError (as we won't allow developers to get that attribute)
+            # provided to the decorator and it is not a special case (called from a class or subclass or during the
+            # process of creating a deepcopy, we raise an AttributeException
             if (name.startswith("__") or name.startswith("_{0}__".format(class_.__name__)) or name in args) and \
-                    not from_class:
+                    not special_case:
                 raise AttributeError("We can't access private attribute {0}".format(name))
             # Otherwise, we just return the result of calling the copy we did of the usual magic method to get an
             # attribute (so we are returning that attribute)
@@ -46,22 +68,38 @@ def private_attributes_dec(*args):
             """This method will modify how the magic method to set attributes works, making impossible for developers
             to set a private attribute or a public attribute we set as private in the decorator outside the class
             to a new value"""
-            # We get the current frame where the attribute was called from
             f: inspect.FrameInfo = inspect.currentframe()
-            # By default, we will consider that it is not being called from the class (or a subclass). However, we will
-            # check if that is the case using the current frame (f) and checking if it also being called from a subclass
-            # and in that case we set it to True
-            from_class: bool = False
-            if 'self' in f.f_back.f_locals and issubclass(type(f.f_back.f_locals['self']), class_):
-                from_class = True
+            # By default, we will consider that it is not being called from the class (or a subclass) or in case we want
+            # to allow it (allow_deep_copy) from the module copy and function deepcopy to create a deepcopy of the
+            # object. However, we will check if that is the case using the current frame (f) and checking if it also
+            # being called from a subclass or from the module copy and function deepcopy and in that case
+            # we set it to True
+            special_case: bool = False
+            # By default, we assume we are not doing a deepcopy of an instance from this class
+            deep_copy: bool = False
+            # If we set the keyword parameter allow_deep_copy to True in the decorator, we check if we are indeed
+            # trying to create a deepcopy of an object of our decorated class
+            if "allow_deep_copy" in kwargs.keys() and kwargs["allow_deep_copy"] == True:
+                # We get the previous frames
+                previous_frames = inspect.getouterframes(f)
+                for f1 in previous_frames:
+                    # If in our of those frames the file executed is copy.py and the function is deepcopy
+                    if f1.filename.endswith("copy.py") and f1.function == "deepcopy":
+                        # We are indeed trying to create a deep copy of an object of this class. Therefore, we set
+                        # the control parameter deep_copy to True and break the loop as we don´t have to keep searching
+                        deep_copy = True
+                        break
+            # So if the attribute was called inside our class or one of its subclasses or we are trying to perform
+            # a deepcopy
+            if ('self' in f.f_back.f_locals and issubclass(type(f.f_back.f_locals['self']), class_)) or deep_copy:
+                # It is an special case we have to accept
+                special_case = True
             # If the attribute being called is private (starts with __ or _className__ or is in the list of attributes
-            # provided to the decorator and it is not being called from the class or a subclass,
-            # we raise an AttributeError (as we won't allow developers to set that attribute to a new value)
-            if (name.startswith("__") or name.startswith("_{0}__".format(class_.__name__)) or name in args)\
-                    and not from_class:
-                raise AttributeError("We can't modify private attribute {0}".format(name))
-            # Otherwise, we just return the result of calling the copy we did of the usual magic method to set an
-            # attribute to return a new value
+            # provided to the decorator and it is not a special case (called from a class or subclass or during the
+            # process of creating a deepcopy, we raise an AttributeException
+            if (name.startswith("__") or name.startswith("_{0}__".format(class_.__name__)) or name in args) and \
+                    not special_case:
+                raise AttributeError("We can't access private attribute {0}".format(name))
             return class_.__setattr__orig(self, name, value)
         # We replace the standard magic methods to get and set attributes with the new ones we defined above
         class_.__getattribute__ = new_getattr
@@ -270,3 +308,87 @@ if __name__ == "__main__":
         assert False
     else:
         assert se.e == None
+
+    # Case 6: We try to do a deepcopy of an object, but we set some parameters as private in its class and did not
+    # set the attribute allow_deep_copy to True
+    @private_attributes_dec("arg1")
+    class NewExample:
+        def __init__(self,arg1: int, arg2: int, arg3: int):
+            self.arg1: int = arg1
+            self__arg2: int = arg2
+            self.arg3: int = arg3
+    import copy
+
+    ne: NewExample = NewExample(1,2,3)
+    # Case 6.1: We try to do a deepcopy of an object, but we set some parameters as private in its class and did not
+    # set the attribute allow_deep_copy to True -> deepcopy raises a copy.Error Exception
+    try:
+        nec = copy.deepcopy(ne)
+    except copy.Error:
+        print("We did not allow for deep copies so the method raised a copy.Error Exception")
+        assert True
+    else:
+        print("We did not allow for deep copies, but the deep copy was produced. Something is not right here")
+        assert False
+    # Case 6.2: We set some parameters as private in its class and did not set the attribute allow_deep_copy to True,
+    # we try to access one of those new private attributes -> We raise an AttributeError as expected
+    try:
+        print(ne.arg1)
+    except AttributeError:
+        print("As before, we can´t access the argument we set as private arg1")
+        assert True
+    else:
+        print("Something is not right here, we should not be able to access private attribute arg1")
+        assert False
+    # Case 6.3: We set some parameters as private in its class and did not set the attribute allow_deep_copy to True,
+    # we try to access one of its public attributes -> We can get the value of the attribute
+    try:
+        print(ne.arg3)
+    except AttributeError:
+        print("Something is not working fine, we should be able to access arg3")
+        assert False
+    else:
+        print("We can still access arg3 without issues")
+        assert True
+    # Case 7: We allowed deep copies in our class and we try to do a deepcopy of an object, we set the some parameters
+    # as private in its class
+    @private_attributes_dec("arg1",allow_deep_copy=True)
+    class NewExampleAllowDeepCopy:
+        def __init__(self,arg1: int, arg2: int, arg3: int):
+            self.arg1: int = arg1
+            self__arg2: int = arg2
+            self.arg3: int = arg3
+
+
+    ned: NewExampleAllowDeepCopy = NewExampleAllowDeepCopy(1, 2, 3)
+    # Case 7.1: We allowed deep copies in our class and we try to do a deepcopy of an object, we set the some parameters
+    # as private in its class. We try to create a deepcopy of the object -> The copy is created
+    try:
+        nedc = copy.deepcopy(ned)
+    except copy.Error:
+        print("We allowed for deep copies but the method raised a copy.Error Exception, something is wrong")
+        assert False
+    else:
+        print("The copy was created without issues")
+        print(nedc)
+        assert True
+    # Case 7.2: We allowed deep copies in our class and we try to do a deepcopy of an object, we set the some parameters
+    # as private in its class. We try to get a private attribute -> We raise an AttributeError as expected
+    try:
+        print(ned.arg1)
+    except AttributeError:
+        print("As before, we can´t access the argument we set as private arg1")
+        assert True
+    else:
+        print("Something is not right here, we should not be able to access private attribute arg1")
+        assert False
+    # Case 7.2: We allowed deep copies in our class and we try to do a deepcopy of an object, we set the some parameters
+    # as private in its class, we try to access one of its public attributes -> We can get the value of the attribute
+    try:
+        print(ned.arg3)
+    except AttributeError:
+        print("Something is not working fine, we should be able to access arg3")
+        assert False
+    else:
+        print("We can still access arg3 without issues")
+        assert True
