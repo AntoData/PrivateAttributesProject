@@ -7,7 +7,7 @@
 Use the package manager [pip](https://pip.pypa.io/en/stable/) to install PrivateAttributesProject.
 
 ```bash
-pip3 install PrivateAttributesProject
+pip3 install PrivateAttributesDecorator
 ```
 
 ## Usage
